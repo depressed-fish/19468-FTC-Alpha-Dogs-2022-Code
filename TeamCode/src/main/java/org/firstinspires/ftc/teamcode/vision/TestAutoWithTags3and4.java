@@ -160,18 +160,13 @@ public class TestAutoWithTags3and4 extends LinearOpMode
             telemetry.update();
         }
 
-        /* Actually do something useful */
+        // Does the code
         if(tagOfInterest == null)
         {
             telemetry.addLine("No tags!");
         }
         else
         {
-            /*
-             * Insert your autonomous code here, probably using the tag pose to decide your configuration.
-             */
-
-            // e.g.
             if(tagOfInterest.id == TARGET_TAGS.get(0))
             {
                 stage1.setPower(1);

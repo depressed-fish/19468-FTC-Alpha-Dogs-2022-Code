@@ -48,7 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 @Autonomous
-public class RedLeftAuto extends LinearOpMode
+public class SimpleParkAuto extends LinearOpMode
 {
     OpenCvCamera camera;
     AprilTagDetectionPipeline aprilTagDetectionPipeline;
@@ -137,7 +137,6 @@ public class RedLeftAuto extends LinearOpMode
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
 
-        //TODO: make a
         TARGET_TAGS.add(1);
         TARGET_TAGS.add(2);
         TARGET_TAGS.add(3);
@@ -198,231 +197,62 @@ public class RedLeftAuto extends LinearOpMode
         }
         else
         {
-            /*
-                int i;
-                switch (phase) {
-                    case 0:
-                        pid.setSetpoint(-62.5);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 1:
-                        //TODO: convert encoder moves to cm and back to rotation
-                        //164cm from front of claw
-                        //should be 154 to allow for turn to cone stack
-                        driveToPosition(164, 0.5, Direction.FORWARDS);
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 2:
-                        //TODO: code the grabbing of the cone
-                        //move up slightly
-                        //grab cone
-                        //clawLeft.setPower(0.5);
-                        //clawRight.setPower(0.5);
-                        if (!leftBArm.isBusy()) {
-                            moveArm(0.35, 12); //TODO: get this value
-                            phase++;
-                        }
-                        break;
-                    case 3:
-                        //square up
-                        pid.setSetpoint(90);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate((getAngle())));
-                        } else {
-                            mecanumDrive(Direction.BACKWARDS, 1.0);
-                            sleep(500);
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 4:
-                        //rotate to pole
-                        pid.setSetpoint(90); //TODO: get angle
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 5:
-                        //go to pole
-                        driveToPosition(0.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 6:
-                        //TODO: get how to do claw
-                        //clawLeft.setPower(0);
-                        //clawRight.setPower(0);
-                        //drive back a bit
-                        moveArm(-0.35, 0); //TODO: get this value too
-                        if (!leftBArm.isBusy()) {
-                            phase++;
-                        }
-                        break;
-                    case 7:
-                        pid.setSetpoint(-90);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 8:
-                        driveToPosition(10, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 9:
-                        //turn to cone pile again
-                        pid.setSetpoint(20); //TODO: get angle
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 10:
-                        if (TARGET_TAGS.get(2) == tagOfInterest.id && i == 1) {
-                            phase++;
-                        } else if (TARGET_TAGS.get(1) == tagOfInterest.id && i == 2) {
-                            phase = 15;
-                        } else if (TARGET_TAGS.get(0) == tagOfInterest.id && i == 3) {
-                            phase = 19;
-                        } else {
-                            phase = 2;
-                            i++;
-                        }
-                        break;
-                    case 11:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 12:
-                        //go to center of patch
-                        driveToPosition(33.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 13:
-                        //turn to location 3
-                        pid.setSetpoint(90.0);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 14:
-                        //go to location 3
-                        driveToPosition(33.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase = 69;
-                        }
-                        break;
-                    case 15:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45.0);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 16:
-                        //go to center of patch
-                        driveToPosition(013.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 17:
-                        //turn to location 2
-                        pid.setSetpoint(90.00);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 18:
-                        //go to location 2
-                        driveToPosition(22.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase = 69;
-                        }
-                        break;
-                    case 19:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45.00);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 20:
-                        //go to center of patch
-                        driveToPosition(11.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 21:
-                        //turn to location 3
-                        pid.setSetpoint(90.000);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 22:
-                        //go to location 3
-                        driveToPosition(11.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase = 69;
-                        }
-                        break;
-                    default:
-                        telemetry.addLine("All done!");
-                        break;
-                }
-             */
-
+            switch (tagOfInterest.id) {
+                case 1:
+                    //turn 90 to left
+                    pid.setSetpoint(-90);
+                    while (!pid.atSetpoint()) {
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                    }
+                    //drive to next square
+                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    while (leftBackDrive.isBusy()) {
+                        sleep(10);
+                    }
+                    //turn 90 ot right
+                    pid.setSetpoint(0);
+                    while (!pid.atSetpoint()) {
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                    }
+                    //move to position
+                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    while (leftBackDrive.isBusy()) {
+                        sleep(10);
+                    }
+                    phase = 69;
+                    break;
+                case 2:
+                    //drive forwards to position
+                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    while (leftBackDrive.isBusy()) {
+                        sleep(10);
+                    }
+                    phase = 69;
+                    break;
+                case 3:
+                    //turn 90 to right
+                    pid.setSetpoint(90);
+                    while (!pid.atSetpoint()) {
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                    }
+                    //drive to next square
+                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    while (leftBackDrive.isBusy()) {
+                        sleep(10);
+                    }
+                    //turn 90 to left
+                    pid.setSetpoint(0);
+                    while (!pid.atSetpoint()) {
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                    }
+                    //move to position
+                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    while (leftBackDrive.isBusy()) {
+                        sleep(10);
+                    }
+                    phase = 69;
+                    break;
+            }
         }
 
 
@@ -441,7 +271,7 @@ public class RedLeftAuto extends LinearOpMode
         telemetry.addLine(String.format("Rotation Roll: %.2f degrees", Math.toDegrees(detection.pose.roll)));
     }
 
-    //TODO: CONVERT ALL THIS SHIT TO FUCKIGN MECHANUM KILL ME AAAAAAA (HIGH PRIORITY)
+
     void mecanumDrive(Direction direction, double power) {
         // leftFrontDrive.setPower();
         // rightFrontDrive.setPower();

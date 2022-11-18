@@ -109,6 +109,11 @@ public class PIDTuning extends LinearOpMode {
         leftTArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightTArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
@@ -118,7 +123,7 @@ public class PIDTuning extends LinearOpMode {
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         imu.initialize(parameters);
 
-        pid = new PIDController(0.01, 0.0, 0.0);
+        pid = new PIDController(0.25, 0.0, 0.0);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -127,8 +132,10 @@ public class PIDTuning extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            double y = -gamepad1.left_stick_y; // Remember, this is reversed!
-            double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
+            pid.setTolerance(0.1);
+
+            double y = gamepad1.left_stick_y; // Remember, this is reversed!
+            double x = -gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
             double rx = gamepad1.right_stick_x;
 
             // Denominator is the largest motor power (absolute value) or 1
@@ -164,12 +171,16 @@ public class PIDTuning extends LinearOpMode {
 
             if (gamepad1.dpad_up) {
                 pid.setP((pid.getP() + 0.01));
+                sleep(500);
             } else if (gamepad1.dpad_down) {
                 pid.setP((pid.getP() - 0.01));
+                sleep(500);
             } else if (gamepad1.dpad_left) {
                 pid.setP((pid.getP() + 0.001));
+                sleep(500);
             } else if (gamepad1.dpad_right) {
                 pid.setP((pid.getP() - 0.001));
+                sleep(500);
             }
 
             if (gamepad1.a) {
@@ -250,7 +261,11 @@ public class PIDTuning extends LinearOpMode {
                 leftBackDrive.setPower(0.5);
                 rightBackDrive.setPower(0.5);
 
-            } else if (!leftBackDrive.isBusy()) {
+            } else if (gamepad1.right_bumper) {
+                leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 leftFrontDrive.setPower(0);
                 rightFrontDrive.setPower(0);
                 leftBackDrive.setPower(0);
@@ -259,6 +274,7 @@ public class PIDTuning extends LinearOpMode {
                 rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
             }
 
 
@@ -270,7 +286,9 @@ public class PIDTuning extends LinearOpMode {
                     .addData("Back Left (%.2f)", backLeftPower)
                     .addData("Back Right (%.2f)", backRightPower)
                     .addData("arm power (%.2f)", leftTArm.getPower())
-                    .addData("p", pid.getP());
+                    .addData("p", pid.getP())
+                    .addData("gyro", getAngle())
+                    .addData("motor pos", leftBackDrive.getCurrentPosition());
             telemetry.addLine("note to self: save p value b4 killing program");
             telemetry.update();
         }

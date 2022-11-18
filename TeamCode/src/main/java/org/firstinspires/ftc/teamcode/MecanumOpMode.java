@@ -64,9 +64,9 @@ public class MecanumOpMode extends LinearOpMode {
     private DcMotor rightTArm = null;
     private DcMotor leftBArm = null;
     private DcMotor rightBArm = null;
-    //private Servo clawSpinner = null;
-    //private CRServo clawLeft = null;
-    //private CRServo clawRight = null;
+    private Servo clawSpinner = null;
+    private CRServo clawLeft = null;
+    private CRServo clawRight = null;
 
 
     @Override
@@ -86,18 +86,18 @@ public class MecanumOpMode extends LinearOpMode {
         rightTArm = hardwareMap.get(DcMotor.class, "right top arm");
         leftBArm = hardwareMap.get(DcMotor.class, "left bottom arm");
         rightBArm = hardwareMap.get(DcMotor.class, "right bottom arm");
-        //clawLeft = hardwareMap.get(CRServo.class, "left claw");
-        //clawRight = hardwareMap.get(CRServo.class, "right claw");
-        //clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
+        clawLeft = hardwareMap.get(CRServo.class, "left claw");
+        clawRight = hardwareMap.get(CRServo.class, "right claw");
+        clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
         // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightTArm.setDirection(DcMotorSimple.Direction.REVERSE);
         rightBArm.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -148,7 +148,7 @@ public class MecanumOpMode extends LinearOpMode {
                 rightBArm.setPower(0);
             }
 
-            /*
+
             if (gamepad1.left_bumper) {
                 clawSpinner.setPosition(1.0);
             } else if (gamepad1.right_bumper) {
@@ -159,10 +159,12 @@ public class MecanumOpMode extends LinearOpMode {
                 clawLeft.setPower(1);
                 clawRight.setPower(1);
             } else if (gamepad1.b) {
+                clawRight.setPower(-1);
+                clawLeft.setPower(-1);
+            } else {
                 clawRight.setPower(0);
                 clawLeft.setPower(0);
             }
-             */
 
 
             // Show the elapsed game time and wheel power.

@@ -37,6 +37,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.PIDTuning;
 import org.opencv.core.Mat;
 import org.openftc.apriltag.AprilTagDetection;
 import org.openftc.easyopencv.OpenCvCamera;
@@ -50,6 +51,7 @@ import java.util.Arrays;
 @Autonomous
 public class SimpleParkAuto extends LinearOpMode
 {
+    //TODO: EACH ROTATION OF THE WHEELS IS 49CM
     OpenCvCamera camera;
     AprilTagDetectionPipeline aprilTagDetectionPipeline;
     PIDController pid;
@@ -78,7 +80,7 @@ public class SimpleParkAuto extends LinearOpMode
     double cx = 366.70168128710145;
     double cy = 235.8132829164716;
 
-    double p = 0.01;
+    double p = 0.1;
     double i = 0.0;
     double d = 0.0;
 
@@ -89,6 +91,10 @@ public class SimpleParkAuto extends LinearOpMode
     double tagsize = 0.04;
 
     int phase = 0;
+
+    int c = 0;
+
+    int squareDist = 1863; //60cm / 49 * 360 * 4
 
     int ID_TAG_OF_INTEREST = 3; // Tag ID 18 from the 36h11 family
     ArrayList<Integer> TARGET_TAGS = new ArrayList<Integer>(3);
@@ -143,6 +149,8 @@ public class SimpleParkAuto extends LinearOpMode
 
         pid = new PIDController(p, i, d);
 
+        pid.setTolerance(0.1);
+
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         aprilTagDetectionPipeline = new AprilTagDetectionPipeline(tagsize, fx, fy, cx, cy);
@@ -169,87 +177,111 @@ public class SimpleParkAuto extends LinearOpMode
 
         ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
 
-        if (currentDetections.size() != 0 && (pid.getSetpoint() == 0 || phase == 0)) {
-            boolean tagFound = false;
-            for (AprilTagDetection tag : currentDetections) {
-                if (TARGET_TAGS.contains(tag.id)) {
-                    tagOfInterest = tag;
-                    tagFound = true;
-                    break;
+        while (currentDetections.size() == 0 && c == 0) {
+            currentDetections = aprilTagDetectionPipeline.getLatestDetections();
+            if (currentDetections.size() != 0) {
+                boolean tagFound = false;
+                for (AprilTagDetection tag : currentDetections) {
+                    if (TARGET_TAGS.contains(tag.id)) {
+                        tagOfInterest = tag;
+                        tagFound = true;
+                        break;
+                    }
                 }
+                if (tagFound) {
+                    telemetry.addLine("Tag Found!");
+                    tagToTelemetry(tagOfInterest);
+                } else {
+                    telemetry.addLine("No Tags Found!");
+                }
+                telemetry.update();
+                sleep(20);
             }
-            if (tagFound) {
-                telemetry.addLine("Tag Found!");
-                tagToTelemetry(tagOfInterest);
-            } else {
-                telemetry.addLine("No Tags Found!");
-            }
-            telemetry.update();
-            sleep(20);
         }
 
-        telemetry.clearAll();
 
         // Does the code
         if(tagOfInterest == null)
         {
             telemetry.addLine("No tags!");
+            telemetry.update();
         }
         else
         {
+            tagToTelemetry(tagOfInterest);
+            telemetry.update();
+            c++;
+            stopAndResetEncoders();
             switch (tagOfInterest.id) {
                 case 1:
                     //turn 90 to left
                     pid.setSetpoint(-90);
+                    PIDToTelemetry(pid);
+                    telemetry.update();
                     while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                        sleep(10);
                     }
                     //drive to next square
-                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
                     while (leftBackDrive.isBusy()) {
                         sleep(10);
                     }
+                    stopAndResetEncoders();
                     //turn 90 ot right
                     pid.setSetpoint(0);
+                    PIDToTelemetry(pid);
+                    telemetry.update();
                     while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                        sleep(10);
                     }
                     //move to position
-                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
                     while (leftBackDrive.isBusy()) {
                         sleep(10);
                     }
+                    stopAndResetEncoders();
                     phase = 69;
                     break;
                 case 2:
                     //drive forwards to position
-                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
                     while (leftBackDrive.isBusy()) {
                         sleep(10);
                     }
+                    stopAndResetEncoders();
                     phase = 69;
                     break;
                 case 3:
                     //turn 90 to right
                     pid.setSetpoint(90);
+                    PIDToTelemetry(pid);
+                    telemetry.update();
                     while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                        sleep(10);
                     }
                     //drive to next square
-                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
                     while (leftBackDrive.isBusy()) {
                         sleep(10);
                     }
+                    stopAndResetEncoders();
                     //turn 90 to left
                     pid.setSetpoint(0);
+                    PIDToTelemetry(pid);
+                    telemetry.update();
                     while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                        sleep(10);
                     }
                     //move to position
-                    driveToPosition(1, 0.5, Direction.FORWARDS); //TODO: get target, 1440 = 360 deg
+                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
                     while (leftBackDrive.isBusy()) {
                         sleep(10);
                     }
+                    stopAndResetEncoders();
                     phase = 69;
                     break;
             }
@@ -271,12 +303,25 @@ public class SimpleParkAuto extends LinearOpMode
         telemetry.addLine(String.format("Rotation Roll: %.2f degrees", Math.toDegrees(detection.pose.roll)));
     }
 
+    void PIDToTelemetry(PIDController pid) {
+        telemetry.addLine("PID Values")
+                .addData("P", pid.getP())
+                .addData("At Setpoint?", pid.atSetpoint())
+                .addData("setpoint", pid.getSetpoint());
+    }
 
-    void mecanumDrive(Direction direction, double power) {
+
+    void mecanumDrive(Direction direction, double power, boolean pos) {
         // leftFrontDrive.setPower();
         // rightFrontDrive.setPower();
         // leftBackDrive.setPower();
         // rightBackDrive.setPower();
+        if (!pos) {
+            leftFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
         switch (direction) {
             case FORWARDS:
                 leftFrontDrive.setPower(Math.abs(power));
@@ -360,23 +405,33 @@ public class SimpleParkAuto extends LinearOpMode
         rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setTargetPosition(0);
+        rightFrontDrive.setTargetPosition(0);
+        rightBackDrive.setTargetPosition(0);
+        leftBackDrive.setTargetPosition(0);
     }
     void driveToPosition(int target, double power, Direction direction) {
-        leftFrontDrive.setTargetPosition(target);
-        rightFrontDrive.setTargetPosition(target);
-        rightBackDrive.setTargetPosition(target);
-        leftBackDrive.setTargetPosition(target);
-        if (    !(leftFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(rightFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(leftBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(rightBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
-        ) {
-            leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        if (leftBackDrive.getTargetPosition() != target) {
+            leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftFrontDrive.setTargetPosition(target);
+            rightFrontDrive.setTargetPosition(target);
+            rightBackDrive.setTargetPosition(target);
+            leftBackDrive.setTargetPosition(target);
+            if (    !(leftFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(rightFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(leftBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(rightBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
+            ) {
+                leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
         }
-        mecanumDrive(direction, power);
+        mecanumDrive(direction, power, true);
     }
     void stopMotors() {
         leftFrontDrive.setPower(0.0);

@@ -45,15 +45,16 @@ public class AprilTagAutonomousInitDetectionExample extends LinearOpMode
     // UNITS ARE PIXELS
     // NOTE: this calibration is for the C270 at default res
     // You will need to do your own calibration for other configurations!
-    double fx = 964.9720651044612;
-    double fy = 961.9626539642991;
-    double cx = 302.93306542423454;
-    double cy = 237.66599433445498;
+    double fx = 951.1737219669708;
+    double fy = 946.8567516102694;
+    double cx = 366.70168128710145;
+    double cy = 235.8132829164716;
 
     // UNITS ARE METERS
     double tagsize = 0.166;
 
     int ID_TAG_OF_INTEREST = 3; // Tag ID 18 from the 36h11 family
+    ArrayList<Integer> TARGET_TAGS = new ArrayList<Integer>(3);
 
     AprilTagDetection tagOfInterest = null;
 
@@ -63,6 +64,11 @@ public class AprilTagAutonomousInitDetectionExample extends LinearOpMode
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         aprilTagDetectionPipeline = new AprilTagDetectionPipeline(tagsize, fx, fy, cx, cy);
+
+        TARGET_TAGS.add(1);
+        TARGET_TAGS.add(2);
+        TARGET_TAGS.add(3);
+
 
         camera.setPipeline(aprilTagDetectionPipeline);
         camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
@@ -96,7 +102,7 @@ public class AprilTagAutonomousInitDetectionExample extends LinearOpMode
 
                 for(AprilTagDetection tag : currentDetections)
                 {
-                    if(tag.id == ID_TAG_OF_INTEREST)
+                    if(TARGET_TAGS.contains(tag.id))
                     {
                         tagOfInterest = tag;
                         tagFound = true;

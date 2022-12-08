@@ -94,7 +94,7 @@ public class SimpleParkAuto extends LinearOpMode
 
     int c = 0;
 
-    int squareDist = 1863; //60cm / 49 * 360 * 4
+    int squareDist = 1863; //60cm / 49 * 360 * 4 = 1763
 
     int ID_TAG_OF_INTEREST = 3; // Tag ID 18 from the 36h11 family
     ArrayList<Integer> TARGET_TAGS = new ArrayList<Integer>(3);
@@ -175,121 +175,124 @@ public class SimpleParkAuto extends LinearOpMode
 
         waitForStart();
 
-        ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
+        while (opModeIsActive() && c == 0) {
 
-        while (currentDetections.size() == 0 && c == 0) {
-            currentDetections = aprilTagDetectionPipeline.getLatestDetections();
-            if (currentDetections.size() != 0) {
-                boolean tagFound = false;
-                for (AprilTagDetection tag : currentDetections) {
-                    if (TARGET_TAGS.contains(tag.id)) {
-                        tagOfInterest = tag;
-                        tagFound = true;
-                        break;
-                    }
-                }
-                if (tagFound) {
-                    telemetry.addLine("Tag Found!");
-                    tagToTelemetry(tagOfInterest);
-                } else {
-                    telemetry.addLine("No Tags Found!");
-                }
+            ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
+
+            boolean tagFound = false;
+
+            while (!tagFound && c == 0 && opModeIsActive()) {
+                currentDetections = aprilTagDetectionPipeline.getLatestDetections();
+                telemetry.addData("detection size", currentDetections.size());
                 telemetry.update();
-                sleep(20);
+                if (currentDetections.size() != 0) {
+                    for (AprilTagDetection tag : currentDetections) {
+                        if (TARGET_TAGS.contains(tag.id)) {
+                            tagOfInterest = tag;
+                            tagFound = true;
+                            break;
+                        }
+                    }
+                    if (tagFound) {
+                        telemetry.addLine("Tag Found!");
+                        tagToTelemetry(tagOfInterest);
+                    } else {
+                        telemetry.addLine("No Tags Found!");
+                    }
+                    telemetry.update();
+                    sleep(20);
+                }
+            }
+
+
+            // Does the code
+            if(tagOfInterest == null)
+            {
+                telemetry.addLine("No tags!");
+                telemetry.update();
+            }
+            else
+            {
+                tagToTelemetry(tagOfInterest);
+                telemetry.update();
+                c++;
+                stopAndResetEncoders();
+                switch (tagOfInterest.id) {
+                    case 1:
+                        //turn 90 to left
+                        pid.setSetpoint(-90);
+                        PIDToTelemetry(pid);
+                        telemetry.update();
+                        while (!pid.atSetpoint() && opModeIsActive()) {
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                            sleep(10);
+                        }
+                        //drive to next square
+                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        while (leftBackDrive.isBusy() && opModeIsActive()) {
+                            sleep(10);
+                        }
+                        stopAndResetEncoders();
+                        //turn 90 ot right
+                        pid.setSetpoint(0);
+                        PIDToTelemetry(pid);
+                        telemetry.update();
+                        while (!pid.atSetpoint() && opModeIsActive()) {
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                            sleep(10);
+                        }
+                        //move to position
+                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        while (leftBackDrive.isBusy() && opModeIsActive()) {
+                            sleep(10);
+                        }
+                        stopAndResetEncoders();
+                        c++;
+                        break;
+                    case 2:
+                        //drive forwards to position
+                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        while (leftBackDrive.isBusy() && opModeIsActive()) {
+                            sleep(10);
+                        }
+                        stopAndResetEncoders();
+                        c++;
+                        break;
+                    case 3:
+                        //turn 90 to right
+                        pid.setSetpoint(90);
+                        PIDToTelemetry(pid);
+                        telemetry.update();
+                        while (!pid.atSetpoint() && opModeIsActive()) {
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                            sleep(10);
+                        }
+                        //drive to next square
+                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        while (leftBackDrive.isBusy() && opModeIsActive()) {
+                            sleep(10);
+                        }
+                        stopAndResetEncoders();
+                        //turn 90 to left
+                        pid.setSetpoint(0);
+                        PIDToTelemetry(pid);
+                        telemetry.update();
+                        while (!pid.atSetpoint() && opModeIsActive()) {
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
+                            sleep(10);
+                        }
+                        //move to position
+                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        while (leftBackDrive.isBusy() && opModeIsActive()) {
+                            sleep(10);
+                        }
+                        stopAndResetEncoders();
+                        c++;
+                        break;
+                }
             }
         }
 
-
-        // Does the code
-        if(tagOfInterest == null)
-        {
-            telemetry.addLine("No tags!");
-            telemetry.update();
-        }
-        else
-        {
-            tagToTelemetry(tagOfInterest);
-            telemetry.update();
-            c++;
-            stopAndResetEncoders();
-            switch (tagOfInterest.id) {
-                case 1:
-                    //turn 90 to left
-                    pid.setSetpoint(-90);
-                    PIDToTelemetry(pid);
-                    telemetry.update();
-                    while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
-                        sleep(10);
-                    }
-                    //drive to next square
-                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
-                    while (leftBackDrive.isBusy()) {
-                        sleep(10);
-                    }
-                    stopAndResetEncoders();
-                    //turn 90 ot right
-                    pid.setSetpoint(0);
-                    PIDToTelemetry(pid);
-                    telemetry.update();
-                    while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
-                        sleep(10);
-                    }
-                    //move to position
-                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
-                    while (leftBackDrive.isBusy()) {
-                        sleep(10);
-                    }
-                    stopAndResetEncoders();
-                    phase = 69;
-                    break;
-                case 2:
-                    //drive forwards to position
-                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
-                    while (leftBackDrive.isBusy()) {
-                        sleep(10);
-                    }
-                    stopAndResetEncoders();
-                    phase = 69;
-                    break;
-                case 3:
-                    //turn 90 to right
-                    pid.setSetpoint(90);
-                    PIDToTelemetry(pid);
-                    telemetry.update();
-                    while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
-                        sleep(10);
-                    }
-                    //drive to next square
-                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
-                    while (leftBackDrive.isBusy()) {
-                        sleep(10);
-                    }
-                    stopAndResetEncoders();
-                    //turn 90 to left
-                    pid.setSetpoint(0);
-                    PIDToTelemetry(pid);
-                    telemetry.update();
-                    while (!pid.atSetpoint()) {
-                        mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
-                        sleep(10);
-                    }
-                    //move to position
-                    driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
-                    while (leftBackDrive.isBusy()) {
-                        sleep(10);
-                    }
-                    stopAndResetEncoders();
-                    phase = 69;
-                    break;
-            }
-        }
-
-
-        /* nice */
-        while (phase != 69);
     }
 
     void tagToTelemetry(AprilTagDetection detection)

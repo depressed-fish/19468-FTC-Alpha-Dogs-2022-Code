@@ -35,6 +35,7 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoController;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
@@ -65,8 +66,11 @@ public class MecanumOpMode extends LinearOpMode {
     private DcMotor leftBArm = null;
     private DcMotor rightBArm = null;
     private Servo clawSpinner = null;
-    private CRServo clawLeft = null;
-    private CRServo clawRight = null;
+    private ServoController clawSpinnerCtrl = null;
+    private CRServo claw= null;
+
+    boolean armScale = true;
+    double spinnerPos = 0.0;
 
 
     @Override
@@ -86,9 +90,9 @@ public class MecanumOpMode extends LinearOpMode {
         rightTArm = hardwareMap.get(DcMotor.class, "right top arm");
         leftBArm = hardwareMap.get(DcMotor.class, "left bottom arm");
         rightBArm = hardwareMap.get(DcMotor.class, "right bottom arm");
-        clawLeft = hardwareMap.get(CRServo.class, "left claw");
-        clawRight = hardwareMap.get(CRServo.class, "right claw");
+        claw = hardwareMap.get(CRServo.class, "claw");
         clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
+        clawSpinnerCtrl = clawSpinner.getController();
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
@@ -131,16 +135,36 @@ public class MecanumOpMode extends LinearOpMode {
             rightFrontDrive.setPower(frontRightPower);
             rightBackDrive.setPower(backRightPower);
 
+            if (gamepad1.start) {
+                armScale = !armScale;
+            }
+
             if (gamepad1.left_trigger > 0.0) {
-                leftTArm.setPower(gamepad1.left_trigger);
-                rightTArm.setPower(gamepad1.left_trigger);
-                leftBArm.setPower(gamepad1.left_trigger);
-                rightBArm.setPower(gamepad1.left_trigger);
+                if (!armScale) {
+                    leftTArm.setPower(gamepad1.left_trigger);
+                    rightTArm.setPower(gamepad1.left_trigger);
+                    leftBArm.setPower(gamepad1.left_trigger);
+                    rightBArm.setPower(gamepad1.left_trigger);
+                } else {
+                    leftTArm.setPower(gamepad1.left_trigger * 0.75);
+                    rightTArm.setPower(gamepad1.left_trigger * 0.75);
+                    leftBArm.setPower(gamepad1.left_trigger * 0.75);
+                    rightBArm.setPower(gamepad1.left_trigger * 0.75);
+                }
+
             } else if (gamepad1.right_trigger > 0.0) {
-                leftTArm.setPower(gamepad1.right_trigger * -1);
-                rightTArm.setPower(gamepad1.right_trigger * -1);
-                leftBArm.setPower(gamepad1.right_trigger * -1);
-                rightBArm.setPower(gamepad1.right_trigger * -1);
+                if (!armScale) {
+                    leftTArm.setPower(gamepad1.right_trigger * -1);
+                    rightTArm.setPower(gamepad1.right_trigger * -1);
+                    leftBArm.setPower(gamepad1.right_trigger * -1);
+                    rightBArm.setPower(gamepad1.right_trigger * -1);
+                } else {
+                    leftTArm.setPower(gamepad1.right_trigger * -0.75);
+                    rightTArm.setPower(gamepad1.right_trigger * -0.75);
+                    leftBArm.setPower(gamepad1.right_trigger * -0.75);
+                    rightBArm.setPower(gamepad1.right_trigger * -0.75);
+                }
+
             } else {
                 leftTArm.setPower(0);
                 rightTArm.setPower(0);
@@ -150,20 +174,26 @@ public class MecanumOpMode extends LinearOpMode {
 
 
             if (gamepad1.left_bumper) {
-                clawSpinner.setPosition(1.0);
+                clawSpinner.setPosition(spinnerPos);
+                //clawSpinner.setPosition(0.0);
             } else if (gamepad1.right_bumper) {
-                clawSpinner.setPosition(0.0);
+               // clawSpinner.setPosition(1.0);
             }
 
             if (gamepad1.a) {
-                clawLeft.setPower(1);
-                clawRight.setPower(1);
+                claw.setPower(0.8);
             } else if (gamepad1.b) {
-                clawRight.setPower(-1);
-                clawLeft.setPower(-1);
+                claw.setPower(-0.9);
             } else {
-                clawRight.setPower(0);
-                clawLeft.setPower(0);
+                //claw.setPower(0.0);
+            }
+
+            if (gamepad1.x) {
+                spinnerPos += 0.1;
+                sleep(100);
+            } else if (gamepad1.y) {
+                spinnerPos -= 0.1;
+                sleep(100);
             }
 
 
@@ -175,8 +205,16 @@ public class MecanumOpMode extends LinearOpMode {
                     .addData("Back Left (%.2f)", backLeftPower)
                     .addData("Back Right (%.2f)", backRightPower)
                     .addData("arm power (%.2f)", leftTArm.getPower())
-                    //.addData("spinner pos (%.2f)", clawSpinner.getPosition())
-                    .addData("arm encoders (%.2f)", leftTArm.getCurrentPosition());
+                    .addData("spinner pos (%.2f)", clawSpinner.getPosition())
+                    .addData("x", x)
+                    .addData("y", y)
+                    .addData("rx", rx)
+                    .addData("var", frontRightPower)
+                    .addData("arm encoders (%.2f)", leftTArm.getCurrentPosition())
+                    .addData("claw", claw.getPower())
+                    .addData("servo controller", clawSpinner.getController())
+                    .addData("servo port", clawSpinner.getPortNumber())
+                    .addData("Servo Position", clawSpinnerCtrl.getServoPosition(0));
             telemetry.update();
         }
     }

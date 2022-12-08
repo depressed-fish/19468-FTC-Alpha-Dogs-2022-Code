@@ -61,9 +61,8 @@ public class RedLeftAuto extends LinearOpMode
     private DcMotor rightTArm = null;
     private DcMotor leftBArm = null;
     private DcMotor rightBArm = null;
-    //private Servo clawSpinner = null;
-    //private CRServo clawLeft = null;
-    //private CRServo clawRight = null;
+    private CRServo claw= null;
+    private Servo clawSpinner = null;
     private BNO055IMU imu = null;
 
 
@@ -89,6 +88,8 @@ public class RedLeftAuto extends LinearOpMode
     double tagsize = 0.04;
 
     int phase = 0;
+    int c = 0;
+    int counter = 0;
 
     int ID_TAG_OF_INTEREST = 3; // Tag ID 18 from the 36h11 family
     ArrayList<Integer> TARGET_TAGS = new ArrayList<Integer>(3);
@@ -109,9 +110,8 @@ public class RedLeftAuto extends LinearOpMode
         rightTArm = hardwareMap.get(DcMotor.class, "right top arm");
         leftBArm = hardwareMap.get(DcMotor.class, "left bottom arm");
         rightBArm = hardwareMap.get(DcMotor.class, "right bottom arm");
-        ////clawLeft = hardwareMap.get(CRServo.class, "left claw");
-        ////clawRight = hardwareMap.get(CRServo.class, "right claw");
-        ////clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
+        claw = hardwareMap.get(CRServo.class, "claw");
+        clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
 
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
@@ -168,53 +168,50 @@ public class RedLeftAuto extends LinearOpMode
 
         waitForStart();
 
-        ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
-
-        if (currentDetections.size() != 0 && (pid.getSetpoint() == 0 || phase == 0)) {
-            boolean tagFound = false;
-            for (AprilTagDetection tag : currentDetections) {
-                if (TARGET_TAGS.contains(tag.id)) {
-                    tagOfInterest = tag;
-                    tagFound = true;
-                    break;
+        ArrayList<AprilTagDetection> currentDetections;
+        while (opModeIsActive() && c == 0) {
+            currentDetections = aprilTagDetectionPipeline.getLatestDetections();
+            if (currentDetections.size() != 0 && (pid.getSetpoint() == 0 || phase == 0)) {
+                boolean tagFound = false;
+                for (AprilTagDetection tag : currentDetections) {
+                    if (TARGET_TAGS.contains(tag.id)) {
+                        tagOfInterest = tag;
+                        tagFound = true;
+                        break;
+                    }
                 }
+                if (tagFound) {
+                    telemetry.addLine("Tag Found!");
+                    tagToTelemetry(tagOfInterest);
+                    c++;
+                } else {
+                    telemetry.addLine("No Tags Found!");
+                }
+                telemetry.update();
+                sleep(20);
             }
-            if (tagFound) {
-                telemetry.addLine("Tag Found!");
-                tagToTelemetry(tagOfInterest);
-            } else {
-                telemetry.addLine("No Tags Found!");
-            }
-            telemetry.update();
-            sleep(20);
         }
 
         telemetry.clearAll();
 
-        // Does the code
-        if(tagOfInterest == null)
-        {
-            telemetry.addLine("No tags!");
-        }
-        else
-        {
-            /*
-                int i;
+        while (opModeIsActive() && c != 0) {
+            // Does the code
+            if(tagOfInterest == null)
+            {
+                telemetry.addLine("No tags!");
+            } else {
                 switch (phase) {
                     case 0:
                         pid.setSetpoint(-62.5);
                         if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
                         } else {
                             stopAndResetEncoders();
                             phase++;
                         }
                         break;
                     case 1:
-                        //TODO: convert encoder moves to cm and back to rotation
-                        //164cm from front of claw
-                        //should be 154 to allow for turn to cone stack
-                        driveToPosition(164, 0.5, Direction.FORWARDS);
+                        driveToPosition(4026, 0.5, Direction.FORWARDS);
                         if (!leftFrontDrive.isBusy()) {
                             stopAndResetEncoders();
                             phase++;
@@ -222,12 +219,12 @@ public class RedLeftAuto extends LinearOpMode
                         break;
                     case 2:
                         //TODO: code the grabbing of the cone
-                        //move up slightly
-                        //grab cone
-                        //clawLeft.setPower(0.5);
-                        //clawRight.setPower(0.5);
-                        if (!leftBArm.isBusy()) {
-                            moveArm(0.35, 12); //TODO: get this value
+                        claw.setPower(-0.9);
+                        moveArm(0.75, 1080);
+                        driveToPosition(360, 0.5, Direction.FORWARDS);
+                        if (!leftBackDrive.isBusy()) {
+                            claw.setPower(0.8);
+                            moveArm(0.35, 2160); //TODO: get this value
                             phase++;
                         }
                         break;
@@ -235,9 +232,9 @@ public class RedLeftAuto extends LinearOpMode
                         //square up
                         pid.setSetpoint(90);
                         if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate((getAngle())));
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate((getAngle())), false);
                         } else {
-                            mecanumDrive(Direction.BACKWARDS, 1.0);
+                            mecanumDrive(Direction.BACKWARDS, 1.0, false);
                             sleep(500);
                             stopAndResetEncoders();
                             phase++;
@@ -247,34 +244,38 @@ public class RedLeftAuto extends LinearOpMode
                         //rotate to pole
                         pid.setSetpoint(90); //TODO: get angle
                         if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
                         } else {
                             stopAndResetEncoders();
-                            phase++;
+                            if (counter == 4) {
+                                phase = 12;
+                            } else if (counter == 5) {
+                                phase = 16;
+                            } else {
+                                phase++;
+                            }
                         }
                         break;
                     case 5:
                         //go to pole
-                        driveToPosition(0.0, 0.75, Direction.FORWARDS); //TODO: get values
+                        driveToPosition(3555, 0.75, Direction.FORWARDS); //TODO: get values
                         if (!leftFrontDrive.isBusy()) {
                             stopAndResetEncoders();
                             phase++;
                         }
                         break;
                     case 6:
-                        //TODO: get how to do claw
-                        //clawLeft.setPower(0);
-                        //clawRight.setPower(0);
-                        //drive back a bit
-                        moveArm(-0.35, 0); //TODO: get this value too
-                        if (!leftBArm.isBusy()) {
+                        claw.setPower(-0.9);
+                        driveToPosition(-360, 0.5, Direction.BACKWARDS);
+                        if (!leftFrontDrive.isBusy()) {
+                            moveArm(-0.35, 3240);
                             phase++;
                         }
                         break;
                     case 7:
                         pid.setSetpoint(-90);
                         if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
                         } else {
                             stopAndResetEncoders();
                             phase++;
@@ -291,143 +292,55 @@ public class RedLeftAuto extends LinearOpMode
                         //turn to cone pile again
                         pid.setSetpoint(20); //TODO: get angle
                         if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
+                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()), false);
                         } else {
                             stopAndResetEncoders();
                             phase++;
                         }
                         break;
                     case 10:
-                        if (TARGET_TAGS.get(2) == tagOfInterest.id && i == 1) {
-                            phase++;
-                        } else if (TARGET_TAGS.get(1) == tagOfInterest.id && i == 2) {
-                            phase = 15;
-                        } else if (TARGET_TAGS.get(0) == tagOfInterest.id && i == 3) {
+                        if (TARGET_TAGS.get(2) == tagOfInterest.id) {
+                            //tag 3
+                            phase = 4;
+                            counter = 4;
+                        } else if (TARGET_TAGS.get(1) == tagOfInterest.id && counter == 2) {
+                            //tag 2
+                            phase = 4;
+                            counter = 5;
+                        } else if (TARGET_TAGS.get(0) == tagOfInterest.id && counter == 3) {
+                            //tag 1
                             phase = 19;
                         } else {
                             phase = 2;
-                            i++;
-                        }
-                        break;
-                    case 11:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
+                            counter++;
                         }
                         break;
                     case 12:
                         //go to center of patch
-                        driveToPosition(33.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 13:
-                        //turn to location 3
-                        pid.setSetpoint(90.0);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 14:
-                        //go to location 3
-                        driveToPosition(33.0, 0.75, Direction.FORWARDS); //TODO: get values
+                        driveToPosition(3600, 0.75, Direction.FORWARDS); //TODO: get values
                         if (!leftFrontDrive.isBusy()) {
                             stopAndResetEncoders();
                             phase = 69;
-                        }
-                        break;
-                    case 15:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45.0);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
                         }
                         break;
                     case 16:
                         //go to center of patch
-                        driveToPosition(013.0, 0.75, Direction.FORWARDS); //TODO: get values
+                        driveToPosition(5389, 0.75, Direction.FORWARDS); //TODO: get values
                         if (!leftFrontDrive.isBusy()) {
                             stopAndResetEncoders();
                             phase++;
-                        }
-                        break;
-                    case 17:
-                        //turn to location 2
-                        pid.setSetpoint(90.00);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 18:
-                        //go to location 2
-                        driveToPosition(22.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase = 69;
                         }
                         break;
                     case 19:
-                        //turn on angle so we fit
-                        pid.setSetpoint(-45.00);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 20:
-                        //go to center of patch
-                        driveToPosition(11.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 21:
-                        //turn to location 3
-                        pid.setSetpoint(90.000);
-                        if (!pid.atSetpoint()) {
-                            mecanumDrive(Direction.ROTATE_PID, pid.calculate(getAngle()));
-                        } else {
-                            stopAndResetEncoders();
-                            phase++;
-                        }
-                        break;
-                    case 22:
-                        //go to location 3
-                        driveToPosition(11.0, 0.75, Direction.FORWARDS); //TODO: get values
-                        if (!leftFrontDrive.isBusy()) {
-                            stopAndResetEncoders();
-                            phase = 69;
-                        }
+                        //we're in location 1 already lmao
+                        phase = 69;
                         break;
                     default:
                         telemetry.addLine("All done!");
                         break;
                 }
-             */
-
+            }
         }
-
-
-        /* nice */
-        while (phase != 69);
     }
 
     void tagToTelemetry(AprilTagDetection detection)
@@ -441,12 +354,25 @@ public class RedLeftAuto extends LinearOpMode
         telemetry.addLine(String.format("Rotation Roll: %.2f degrees", Math.toDegrees(detection.pose.roll)));
     }
 
-    //TODO: CONVERT ALL THIS SHIT TO FUCKIGN MECHANUM KILL ME AAAAAAA (HIGH PRIORITY)
-    void mecanumDrive(Direction direction, double power) {
+    void PIDToTelemetry(PIDController pid) {
+        telemetry.addLine("PID Values")
+                .addData("P", pid.getP())
+                .addData("At Setpoint?", pid.atSetpoint())
+                .addData("setpoint", pid.getSetpoint());
+    }
+
+
+    void mecanumDrive(Direction direction, double power, boolean pos) {
         // leftFrontDrive.setPower();
         // rightFrontDrive.setPower();
         // leftBackDrive.setPower();
         // rightBackDrive.setPower();
+        if (!pos) {
+            leftFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
         switch (direction) {
             case FORWARDS:
                 leftFrontDrive.setPower(Math.abs(power));
@@ -530,23 +456,33 @@ public class RedLeftAuto extends LinearOpMode
         rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFrontDrive.setTargetPosition(0);
+        rightFrontDrive.setTargetPosition(0);
+        rightBackDrive.setTargetPosition(0);
+        leftBackDrive.setTargetPosition(0);
     }
     void driveToPosition(int target, double power, Direction direction) {
-        leftFrontDrive.setTargetPosition(target);
-        rightFrontDrive.setTargetPosition(target);
-        rightBackDrive.setTargetPosition(target);
-        leftBackDrive.setTargetPosition(target);
-        if (    !(leftFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(rightFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(leftBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
-                !(rightBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
-        ) {
-            leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        if (leftBackDrive.getTargetPosition() != target) {
+            leftFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightFrontDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            rightBackDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            leftFrontDrive.setTargetPosition(target);
+            rightFrontDrive.setTargetPosition(target);
+            rightBackDrive.setTargetPosition(target);
+            leftBackDrive.setTargetPosition(target);
+            if (    !(leftFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(rightFrontDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(leftBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION) ||
+                    !(rightBackDrive.getMode() == DcMotor.RunMode.RUN_TO_POSITION)
+            ) {
+                leftFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rightFrontDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                leftBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rightBackDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
         }
-        mecanumDrive(direction, power);
+        mecanumDrive(direction, power, true);
     }
     void stopMotors() {
         leftFrontDrive.setPower(0.0);

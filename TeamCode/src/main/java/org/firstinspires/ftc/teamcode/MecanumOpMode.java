@@ -65,9 +65,8 @@ public class MecanumOpMode extends LinearOpMode {
     private DcMotor rightTArm = null;
     private DcMotor leftBArm = null;
     private DcMotor rightBArm = null;
-    private Servo clawSpinner = null;
-    private ServoController clawSpinnerCtrl = null;
-    private CRServo claw= null;
+    private CRServo clawElevator = null;
+    private CRServo claw = null;
 
     boolean armScale = true;
     double spinnerPos = 0.0;
@@ -90,9 +89,8 @@ public class MecanumOpMode extends LinearOpMode {
         rightTArm = hardwareMap.get(DcMotor.class, "right top arm");
         leftBArm = hardwareMap.get(DcMotor.class, "left bottom arm");
         rightBArm = hardwareMap.get(DcMotor.class, "right bottom arm");
-        claw = hardwareMap.get(CRServo.class, "claw");
-        clawSpinner = hardwareMap.get(Servo.class, "claw spinner");
-        clawSpinnerCtrl = clawSpinner.getController();
+        claw = hardwareMap.get(CRServo.class, "Claw");
+        clawElevator = hardwareMap.get(CRServo.class, "claw elevator");
 
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
@@ -172,28 +170,18 @@ public class MecanumOpMode extends LinearOpMode {
                 rightBArm.setPower(0);
             }
 
-
-            if (gamepad1.left_bumper) {
-                clawSpinner.setPosition(spinnerPos);
-                //clawSpinner.setPosition(0.0);
-            } else if (gamepad1.right_bumper) {
-               // clawSpinner.setPosition(1.0);
-            }
-
             if (gamepad1.a) {
                 claw.setPower(0.8);
             } else if (gamepad1.b) {
                 claw.setPower(-0.9);
-            } else {
-                //claw.setPower(0.0);
             }
 
             if (gamepad1.x) {
-                spinnerPos += 0.1;
-                sleep(100);
+                clawElevator.setPower(1.0);
             } else if (gamepad1.y) {
-                spinnerPos -= 0.1;
-                sleep(100);
+                clawElevator.setPower(-1.0);
+            } else {
+                clawElevator.setPower(0.0);
             }
 
 
@@ -205,16 +193,13 @@ public class MecanumOpMode extends LinearOpMode {
                     .addData("Back Left (%.2f)", backLeftPower)
                     .addData("Back Right (%.2f)", backRightPower)
                     .addData("arm power (%.2f)", leftTArm.getPower())
-                    .addData("spinner pos (%.2f)", clawSpinner.getPosition())
                     .addData("x", x)
                     .addData("y", y)
                     .addData("rx", rx)
                     .addData("var", frontRightPower)
                     .addData("arm encoders (%.2f)", leftTArm.getCurrentPosition())
                     .addData("claw", claw.getPower())
-                    .addData("servo controller", clawSpinner.getController())
-                    .addData("servo port", clawSpinner.getPortNumber())
-                    .addData("Servo Position", clawSpinnerCtrl.getServoPosition(0));
+                    .addData("claw", claw.getConnectionInfo());
             telemetry.update();
         }
     }

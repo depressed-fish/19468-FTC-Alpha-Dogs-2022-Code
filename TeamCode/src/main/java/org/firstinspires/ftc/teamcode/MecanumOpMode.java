@@ -34,8 +34,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.ServoController;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
@@ -65,7 +63,8 @@ public class MecanumOpMode extends LinearOpMode {
     private DcMotor rightTArm = null;
     private DcMotor leftBArm = null;
     private DcMotor rightBArm = null;
-    private CRServo clawElevator = null;
+    private CRServo stage1 = null;
+    private CRServo stage2 = null;
     private CRServo claw = null;
 
     boolean armScale = true;
@@ -90,8 +89,8 @@ public class MecanumOpMode extends LinearOpMode {
         leftBArm = hardwareMap.get(DcMotor.class, "left bottom arm");
         rightBArm = hardwareMap.get(DcMotor.class, "right bottom arm");
         claw = hardwareMap.get(CRServo.class, "Claw");
-        clawElevator = hardwareMap.get(CRServo.class, "claw elevator");
-
+        stage1 = hardwareMap.get(CRServo.class, "stage 1");
+        stage2 = hardwareMap.get(CRServo.class, "stage2");
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
         // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
@@ -108,6 +107,11 @@ public class MecanumOpMode extends LinearOpMode {
         rightTArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBArm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
         runtime.reset();
@@ -117,7 +121,7 @@ public class MecanumOpMode extends LinearOpMode {
 
             double y = -gamepad1.left_stick_y; // Remember, this is reversed!
             double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
-            double rx = gamepad1.right_stick_x;
+            double rx = -gamepad1.right_stick_x;
 
             // Denominator is the largest motor power (absolute value) or 1
             // This ensures all the powers maintain the same ratio, but only when
@@ -170,18 +174,25 @@ public class MecanumOpMode extends LinearOpMode {
                 rightBArm.setPower(0);
             }
 
-            if (gamepad1.a) {
-                claw.setPower(0.8);
-            } else if (gamepad1.b) {
-                claw.setPower(-0.9);
+            if (gamepad1.left_bumper) {
+                claw.setDirection(DcMotorSimple.Direction.FORWARD);
+                claw.setPower(0.85);
+            } else if (gamepad1.right_bumper) {
+                claw.setDirection(DcMotorSimple.Direction.REVERSE);
+                claw.setPower(0.85);
+            } else {
+                claw.setPower(0);
             }
 
             if (gamepad1.x) {
-                clawElevator.setPower(1.0);
+                stage1.setPower(1.0);
+                stage2.setPower(1.0);
             } else if (gamepad1.y) {
-                clawElevator.setPower(-1.0);
+                stage1.setPower(-1.0);
+                stage2.setPower(-1.0);
             } else {
-                clawElevator.setPower(0.0);
+                stage1.setPower(0.0);
+                stage2.setPower(0.0);
             }
 
 

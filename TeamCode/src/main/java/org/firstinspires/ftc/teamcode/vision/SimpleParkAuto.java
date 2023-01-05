@@ -55,10 +55,10 @@ public class SimpleParkAuto extends LinearOpMode
     OpenCvCamera camera;
     AprilTagDetectionPipeline aprilTagDetectionPipeline;
     PIDController pid;
-    private DcMotor leftFrontDrive = null;
-    private DcMotor rightFrontDrive = null;
-    private DcMotor leftBackDrive = null;
     private DcMotor rightBackDrive = null;
+    private DcMotor leftBackDrive = null;
+    private DcMotor rightFrontDrive = null;
+    private DcMotor leftFrontDrive = null;
     private DcMotor leftTArm = null;
     private DcMotor rightTArm = null;
     private DcMotor leftBArm = null;
@@ -220,7 +220,7 @@ public class SimpleParkAuto extends LinearOpMode
                 switch (tagOfInterest.id) {
                     case 1:
                         //turn 90 to left
-                        pid.setSetpoint(-90);
+                        pid.setSetpoint(90);
                         PIDToTelemetry(pid);
                         telemetry.update();
                         while (!pid.atSetpoint() && opModeIsActive()) {
@@ -228,7 +228,7 @@ public class SimpleParkAuto extends LinearOpMode
                             sleep(10);
                         }
                         //drive to next square
-                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        driveToPosition(squareDist, 0.5, Direction.FORWARDS);
                         while (leftBackDrive.isBusy() && opModeIsActive()) {
                             sleep(10);
                         }
@@ -242,7 +242,7 @@ public class SimpleParkAuto extends LinearOpMode
                             sleep(10);
                         }
                         //move to position
-                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        driveToPosition(squareDist, 0.5, Direction.FORWARDS);
                         while (leftBackDrive.isBusy() && opModeIsActive()) {
                             sleep(10);
                         }
@@ -251,7 +251,7 @@ public class SimpleParkAuto extends LinearOpMode
                         break;
                     case 2:
                         //drive forwards to position
-                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        driveToPosition(squareDist, 0.5, Direction.FORWARDS);
                         while (leftBackDrive.isBusy() && opModeIsActive()) {
                             sleep(10);
                         }
@@ -260,7 +260,7 @@ public class SimpleParkAuto extends LinearOpMode
                         break;
                     case 3:
                         //turn 90 to right
-                        pid.setSetpoint(90);
+                        pid.setSetpoint(-90);
                         PIDToTelemetry(pid);
                         telemetry.update();
                         while (!pid.atSetpoint() && opModeIsActive()) {
@@ -268,7 +268,7 @@ public class SimpleParkAuto extends LinearOpMode
                             sleep(10);
                         }
                         //drive to next square
-                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        driveToPosition(squareDist, 0.5, Direction.FORWARDS);
                         while (leftBackDrive.isBusy() && opModeIsActive()) {
                             sleep(10);
                         }
@@ -282,7 +282,7 @@ public class SimpleParkAuto extends LinearOpMode
                             sleep(10);
                         }
                         //move to position
-                        driveToPosition(-squareDist, 0.5, Direction.FORWARDS);
+                        driveToPosition(squareDist, 0.5, Direction.FORWARDS);
                         while (leftBackDrive.isBusy() && opModeIsActive()) {
                             sleep(10);
                         }
